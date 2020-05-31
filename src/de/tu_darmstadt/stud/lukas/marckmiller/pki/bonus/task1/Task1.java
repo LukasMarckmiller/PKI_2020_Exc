@@ -18,18 +18,16 @@ import org.bouncycastle.util.io.pem.PemReader;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
+
+import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.utils.CryptoUtils;
 
 public class Task1 {
     static final String PUB_KEY = "-----BEGIN PUBLIC KEY-----\n" +
@@ -48,18 +46,7 @@ public class Task1 {
             "-----END PUBLIC KEY-----\n";
     static final String s = "Lukas Marckmiller;lukas.marckmiller@stud.tu-darmstadt.de;2952923";
 
-    private byte[] hash(String messageDigestName, String message) throws NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance(messageDigestName);
-        final byte[] rawHash = digest.digest(message.getBytes(StandardCharsets.UTF_8));
-
-        return rawHash;
-    }
-
-    private String base64Encode(byte[] data){
-        return Base64.getEncoder().encodeToString(data);
-    }
-
-    private byte[] encryptRsaPkcs1Ecb(String data, RSAPublicKey publicKey) throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidCipherTextException {
+    private byte[] encryptRsaPkcs1Ecb(String data, RSAPublicKey publicKey) throws InvalidCipherTextException {
         AsymmetricBlockCipher rsaEngine = new PKCS1Encoding(new RSAEngine());
         rsaEngine.init(true,new RSAKeyParameters(false,publicKey.getModulus(),publicKey.getPublicExponent()));
         byte[] rawData = data.getBytes(StandardCharsets.UTF_8);
@@ -75,37 +62,20 @@ public class Task1 {
         return (RSAPublicKey)factory.generatePublic(encodedKeySpec);
     }
 
-    private RSAPublicKey importPublicKey(String path) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
-        try (PemReader pr = new PemReader(new FileReader(path))) {
-            EncodedKeySpec spec = new X509EncodedKeySpec(pr.readPemObject().getContent());
-            KeyFactory factory = KeyFactory.getInstance("RSA", "BC");
-            return (RSAPublicKey)factory.generatePublic(spec);
-        }
-    }
-
-    private RSAPrivateKey importPrivateKey(String path) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
-        try (PemReader pr = new PemReader(new FileReader(path))) {
-            EncodedKeySpec spec = new X509EncodedKeySpec(pr.readPemObject().getContent());
-            KeyFactory factory = KeyFactory.getInstance("RSA", "BC");
-            return (RSAPrivateKey) factory.generatePublic(spec);
-        }
-    }
-
-    public void mainTask1() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, IOException, InvalidCipherTextException, IllegalBlockSizeException, InvalidKeyException, BadPaddingException, NoSuchPaddingException {
-        Security.addProvider(new BouncyCastleProvider());
+    public void mainTask() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, IOException, InvalidCipherTextException, IllegalBlockSizeException, InvalidKeyException, BadPaddingException, NoSuchPaddingException {
         byte[] hash = null;
         try {
-            hash = hash("SHA-256",s);
+            hash = CryptoUtils.hash("SHA-256",s);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
 
-        String encodedHash = base64Encode(hash);
+        String encodedHash = CryptoUtils.base64Encode(hash);
         String payload = String.format("%s;%s",s,encodedHash);
         System.out.println(payload);
 
         RSAPublicKey pk = readPublicX509RSAKey(PUB_KEY);
-        String encodedEncryptedData = base64Encode(encryptRsaPkcs1Ecb(payload,pk));
+        String encodedEncryptedData = CryptoUtils.base64Encode(encryptRsaPkcs1Ecb(payload,pk));
         System.out.println(encodedEncryptedData);
     }
 }

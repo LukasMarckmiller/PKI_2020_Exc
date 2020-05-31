@@ -7,39 +7,32 @@ package de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus;/*
  */
 
 import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task1.Task1;
+import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task2.Task2;
 import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 
 public class Main {
     public static void main(String[] args) {
-        Task1 task1 = new Task1();
+        Security.addProvider(new BouncyCastleProvider());
+        var task = new Task2();
         try {
-            task1.mainTask1();
+            task.mainTask();
         } catch (NoSuchProviderException e) {
             e.printStackTrace();
         } catch (InvalidKeySpecException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (InvalidCipherTextException e) {
+        } catch (NoSuchAlgorithmException | SignatureException e) {
             e.printStackTrace();
         } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
     }
