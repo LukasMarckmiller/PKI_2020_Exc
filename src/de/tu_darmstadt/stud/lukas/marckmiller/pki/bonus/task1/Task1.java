@@ -11,7 +11,6 @@ import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.encodings.PKCS1Encoding;
 import org.bouncycastle.crypto.engines.RSAEngine;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 
@@ -27,9 +26,9 @@ import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
-import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.utils.CryptoUtils;
+import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.utils.CryptoUtilsProvider;
 
-public class Task1 {
+public class Task1 extends CryptoUtilsProvider{
     static final String PUB_KEY = "-----BEGIN PUBLIC KEY-----\n" +
             "MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAu95NwlIz3WBgtCnL6Y4N\n" +
             "VWQOn/x0VC63nJ6gvXdQ5/j6d9Qxo9DqxIYqATnmfXs5VMmzFPeWi3hTWx4MCCn9\n" +
@@ -65,17 +64,17 @@ public class Task1 {
     public void mainTask() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, IOException, InvalidCipherTextException, IllegalBlockSizeException, InvalidKeyException, BadPaddingException, NoSuchPaddingException {
         byte[] hash = null;
         try {
-            hash = CryptoUtils.hash("SHA-256",s);
+            hash = hash("SHA-256",s);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
 
-        String encodedHash = CryptoUtils.base64Encode(hash);
+        String encodedHash = CryptoUtilsProvider.base64Encode(hash);
         String payload = String.format("%s;%s",s,encodedHash);
         System.out.println(payload);
 
         RSAPublicKey pk = readPublicX509RSAKey(PUB_KEY);
-        String encodedEncryptedData = CryptoUtils.base64Encode(encryptRsaPkcs1Ecb(payload,pk));
+        String encodedEncryptedData = CryptoUtilsProvider.base64Encode(encryptRsaPkcs1Ecb(payload,pk));
         System.out.println(encodedEncryptedData);
     }
 }
