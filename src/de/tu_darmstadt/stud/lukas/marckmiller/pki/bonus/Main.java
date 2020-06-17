@@ -9,6 +9,7 @@ package de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus;/*
 import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task1.Task1;
 import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task2.Task2;
 import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task3.Task3;
+import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task4.Task4;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -22,7 +23,7 @@ import java.security.spec.InvalidKeySpecException;
 public class Main {
     public static void main(String[] args) {
         Security.addProvider(new BouncyCastleProvider());
-        var task = new Task3();
+        var task = new Task4();
         task.mainTask();
     }
 }

@@ -11,8 +11,7 @@ import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.util.io.pem.PemReader;
 
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.interfaces.RSAPrivateKey;
@@ -54,5 +53,19 @@ public class CryptoUtilsProvider {
         final byte[] rawHash = digest.digest(message.getBytes(StandardCharsets.UTF_8));
 
         return rawHash;
+    }
+    protected static byte[] convertToBytes(Object object) throws IOException {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ObjectOutput out = new ObjectOutputStream(bos)) {
+            out.writeObject(object);
+            return bos.toByteArray();
+        }
+    }
+
+    protected static Object convertFromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+             ObjectInput in = new ObjectInputStream(bis)) {
+            return in.readObject();
+        }
     }
 }
