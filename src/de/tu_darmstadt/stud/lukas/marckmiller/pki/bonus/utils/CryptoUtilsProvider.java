@@ -54,6 +54,14 @@ public class CryptoUtilsProvider {
 
         return rawHash;
     }
+
+    protected static byte[] hash(String messageDigestName, byte[] data) throws NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance(messageDigestName);
+        final byte[] rawHash = digest.digest(data);
+
+        return rawHash;
+    }
+
     protected static byte[] convertToBytes(Object object) throws IOException {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              ObjectOutput out = new ObjectOutputStream(bos)) {

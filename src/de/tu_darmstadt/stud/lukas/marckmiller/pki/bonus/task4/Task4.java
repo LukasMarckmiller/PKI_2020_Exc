@@ -1,21 +1,93 @@
 package de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task4;
 
+import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.utils.CryptoUtilsProvider;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.HybridCertificateBuilder;
+import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pqc.crypto.qtesla.*;
+import org.bouncycastle.util.io.pem.PemObjectGenerator;
+import org.bouncycastle.util.io.pem.PemWriter;
 
 import java.io.*;
+import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.SecureRandom;
-import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.utils.CryptoUtilsProvider;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Calendar;
+import java.util.Date;
 
 public class Task4 extends CryptoUtilsProvider{
-    private QTESLAPublicKeyParameters importQteslaPublicKey(String path){
-        QTESLAPublicKeyExportWrapper wrapper = new QTESLAPublicKeyExportWrapper(0,new byte[0]);
+    private final String CAPublicKeyPath = "/home/lukas/Dokumente/tu/pki/ca/caPub.pem";
+    private final String CAPrivateKeyPath = "/home/lukas/Dokumente/tu/pki/ca/ca.pem";
+    private final String CAQteslaPublicKeyPath = "/home/lukas/Dokumente/tu/pki/1.qteslaPub";
+    private final String CAQteslaPrivateKeyPath = "/home/lukas/Dokumente/tu/pki/1.qtesla";
+    private static final String signatureAlgorithm = "SHA256WithRSA";
+
+    private X509CertificateHolder generateX509HybridCACertificate() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, IOException, OperatorCreationException {
+        X500NameBuilder x500NameBuilder = new X500NameBuilder();
+        X500Name x500Name = x500NameBuilder.addRDN(BCStyle.C,"DE")
+                .addRDN(BCStyle.ST, "Hessen")
+                .addRDN(BCStyle.L, "Darmstadt")
+                .addRDN(BCStyle.O,"CA6")
+                .addRDN(BCStyle.OU,"PKI")
+                .addRDN(BCStyle.CN,"CA6").build();
+
+        Date now = new Date(System.currentTimeMillis());
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(now);
+        calendar.add(Calendar.MONTH,2);
+        RSAPublicKey publicKey = importRsaPublicKey(CAPublicKeyPath);
+        var builder = new HybridCertificateBuilder(
+                x500Name,
+                new BigInteger(String.valueOf(System.currentTimeMillis())),
+                now,
+                calendar.getTime(),
+                x500Name,
+                publicKey,
+                importQteslaPublicKey(CAQteslaPublicKeyPath)
+        );
+        builder.addExtension(Extension.subjectKeyIdentifier,false,
+                new SubjectKeyIdentifier(hash("SHA-1",
+                        SubjectPublicKeyInfo.getInstance(publicKey.getEncoded()).getPublicKeyData().getBytes())));
+        builder.addExtension(Extension.basicConstraints,true,new BasicConstraints(true));
+        builder.addExtension(Extension.keyUsage,true,new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign));
+
+        var signerPrimary = new JcaContentSignerBuilder(signatureAlgorithm).build(importRsaPrivateKey(CAPrivateKeyPath));
+        var signerSecondary = new QTESLAContentSigner(importQteslaPrivateKey(CAQteslaPrivateKeyPath));
+        return builder.buildHybrid(signerPrimary,signerSecondary);
+    }
+
+    private QTESLAPrivateKeyParameters importQteslaPrivateKey(String path){
+        QTESLAPrivateKeyWrapper wrapper = new QTESLAPrivateKeyWrapper(0, new byte[0]);
         try (BufferedReader reader =new BufferedReader(new FileReader(path))) {
             StringBuilder builder = new StringBuilder();
             reader.lines().forEach(builder::append);
             String qTeslaEncoded = builder.toString();
-            wrapper = (QTESLAPublicKeyExportWrapper) CryptoUtilsProvider.convertFromBytes(CryptoUtilsProvider.base64Decode(qTeslaEncoded));
+            wrapper = (QTESLAPrivateKeyWrapper) CryptoUtilsProvider.convertFromBytes(CryptoUtilsProvider.base64Decode(qTeslaEncoded));
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return new QTESLAPrivateKeyParameters(wrapper.getSecurityCategory(),wrapper.getSecret());
+    }
+
+    private QTESLAPublicKeyParameters importQteslaPublicKey(String path){
+        QTESLAPublicKeyWrapper wrapper = new QTESLAPublicKeyWrapper(0,new byte[0]);
+        try (BufferedReader reader =new BufferedReader(new FileReader(path))) {
+            StringBuilder builder = new StringBuilder();
+            reader.lines().forEach(builder::append);
+            String qTeslaEncoded = builder.toString();
+            wrapper = (QTESLAPublicKeyWrapper) CryptoUtilsProvider.convertFromBytes(CryptoUtilsProvider.base64Decode(qTeslaEncoded));
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
@@ -36,7 +108,7 @@ public class Task4 extends CryptoUtilsProvider{
                 pemWriter.write(
                         CryptoUtilsProvider.base64Encode(
                                 CryptoUtilsProvider.convertToBytes(
-                                        new QTESLAPrivateKeyExportWrapper(privKey))));
+                                        new QTESLAPrivateKeyWrapper(privKey))));
                 pemWriter.flush();
 
             } catch (IOException e) {
@@ -46,7 +118,7 @@ public class Task4 extends CryptoUtilsProvider{
                 pemWriter.write(
                         CryptoUtilsProvider.base64Encode(
                                 CryptoUtilsProvider.convertToBytes(
-                                        new QTESLAPublicKeyExportWrapper(pubKey))));
+                                        new QTESLAPublicKeyWrapper(pubKey))));
                 pemWriter.flush();
 
             } catch (IOException e) {
@@ -55,9 +127,13 @@ public class Task4 extends CryptoUtilsProvider{
         }
     }
     public void mainTask()  {
-        //HybridCertificateBuilder hybridCertificateBuilder = new HybridCertificateBuilder();
         //generateQTeslaKeyPair("/home/lukas/Dokumente/tu/pki/",2);
-        QTESLAPublicKeyParameters pubKey = importQteslaPublicKey("/home/lukas/Dokumente/tu/pki/1.qteslaPub");
+        try(PemWriter writer = new PemWriter(new FileWriter("CA6.crt"))) {
+            PemObjectGenerator objectGenerator = new JcaMiscPEMGenerator(generateX509HybridCACertificate());
+            writer.writeObject(objectGenerator);
+        } catch (IOException | InvalidKeySpecException | OperatorCreationException | NoSuchProviderException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
     }
 }
 

@@ -5,16 +5,16 @@ import org.bouncycastle.pqc.crypto.qtesla.QTESLAPublicKeyParameters;
 
 import java.io.Serializable;
 
-public class QTESLAPrivateKeyExportWrapper implements Serializable {
+public class QTESLAPrivateKeyWrapper implements Serializable {
     private final byte[] secret;
     private final int securityCategory;
 
-    public QTESLAPrivateKeyExportWrapper(QTESLAPrivateKeyParameters privateKey){
+    public QTESLAPrivateKeyWrapper(QTESLAPrivateKeyParameters privateKey){
         this.secret = privateKey.getSecret();
         this.securityCategory = privateKey.getSecurityCategory();
     }
 
-    public QTESLAPrivateKeyExportWrapper(int securityCategory, byte[] secret){
+    public QTESLAPrivateKeyWrapper(int securityCategory, byte[] secret){
         this.secret = secret;
         this.securityCategory = securityCategory;
     }
