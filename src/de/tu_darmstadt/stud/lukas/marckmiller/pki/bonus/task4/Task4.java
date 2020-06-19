@@ -1,6 +1,7 @@
 package de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task4;
 
 import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.utils.CryptoUtilsProvider;
+import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
@@ -15,11 +16,13 @@ import org.bouncycastle.pqc.crypto.qtesla.*;
 import org.bouncycastle.util.io.pem.PemObjectGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -31,16 +34,57 @@ public class Task4 extends CryptoUtilsProvider{
     private final String CAPrivateKeyPath = "/home/lukas/Dokumente/tu/pki/ca/ca.pem";
     private final String CAQteslaPublicKeyPath = "/home/lukas/Dokumente/tu/pki/1.qteslaPub";
     private final String CAQteslaPrivateKeyPath = "/home/lukas/Dokumente/tu/pki/1.qtesla";
+    private final String EEPublicKeyPath = "/home/lukas/Dokumente/tu/pki/ee/eePub.pem";
+    private final String EEPrivateKeyPath = "/home/lukas/Dokumente/tu/pki/ee/ee.pem";
+    private final String EEQteslaPublicKeyPath = "/home/lukas/Dokumente/tu/pki/2.qteslaPub";
+    private final String EEQteslaPrivateKeyPath = "/home/lukas/Dokumente/tu/pki/2.qtesla";
     private static final String signatureAlgorithm = "SHA256WithRSA";
 
-    private X509CertificateHolder generateX509HybridCACertificate() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, IOException, OperatorCreationException {
-        X500NameBuilder x500NameBuilder = new X500NameBuilder();
-        X500Name x500Name = x500NameBuilder.addRDN(BCStyle.C,"DE")
+    private X509CertificateHolder generateX509HybridEECertificate(X509CertificateHolder caCert) throws
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            InvalidKeySpecException,
+            IOException,
+            OperatorCreationException {
+        var x500NameBuilder = new X500NameBuilder();
+
+        x500NameBuilder.addRDN(BCStyle.C,"DE")
                 .addRDN(BCStyle.ST, "Hessen")
                 .addRDN(BCStyle.L, "Darmstadt")
-                .addRDN(BCStyle.O,"CA6")
+                .addRDN(BCStyle.O,"TU Darmstadt")
                 .addRDN(BCStyle.OU,"PKI")
-                .addRDN(BCStyle.CN,"CA6").build();
+                .addRDN(BCStyle.CN,"E6");
+
+        RSAPublicKey publicEEKey= importRsaPublicKey(EEPublicKeyPath);
+
+        Date now = new Date(System.currentTimeMillis());
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(now);
+        calendar.add(Calendar.MONTH,3);
+        HybridCertificateBuilder builder = new HybridCertificateBuilder(
+                caCert.getSubject(),
+                new BigInteger(String.valueOf(System.currentTimeMillis())),
+                now,
+                calendar.getTime(),
+                x500NameBuilder.build(),
+                publicEEKey,
+                importQteslaPublicKey(EEQteslaPublicKeyPath));
+
+        builder.addExtension(Extension.authorityKeyIdentifier,false,
+                new AuthorityKeyIdentifier(
+                        hash("SHA-1", caCert.getSubjectPublicKeyInfo().getPublicKeyData().getBytes()),
+                        new GeneralNames(new GeneralName(GeneralName.directoryName,caCert.getIssuer())),caCert.getSerialNumber()));
+        builder.addExtension(Extension.basicConstraints,false,new BasicConstraints(false));
+        builder.addExtension(Extension.subjectAlternativeName,false,new GeneralNames(new GeneralName(GeneralName.rfc822Name, "fDqi5sU062iLUOLfW+IcR27ASASEipF75YkCBEaZge8=")));
+        builder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature));
+
+        var signerPrimary = new JcaContentSignerBuilder(signatureAlgorithm).build(importRsaPrivateKey(CAPrivateKeyPath));
+        var signerSecondary = new QTESLAContentSigner(importQteslaPrivateKey(CAQteslaPrivateKeyPath));
+        return builder.buildHybrid(signerPrimary,signerSecondary);
+    }
+
+    private X509CertificateHolder generateX509HybridCACertificate() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException, IOException, OperatorCreationException {
+        X500Name x500Name = getCAX500Name();
 
         Date now = new Date(System.currentTimeMillis());
         Calendar calendar = Calendar.getInstance();
@@ -65,6 +109,16 @@ public class Task4 extends CryptoUtilsProvider{
         var signerPrimary = new JcaContentSignerBuilder(signatureAlgorithm).build(importRsaPrivateKey(CAPrivateKeyPath));
         var signerSecondary = new QTESLAContentSigner(importQteslaPrivateKey(CAQteslaPrivateKeyPath));
         return builder.buildHybrid(signerPrimary,signerSecondary);
+    }
+
+    private X500Name getCAX500Name() {
+        X500NameBuilder x500NameBuilder = new X500NameBuilder();
+        return x500NameBuilder.addRDN(BCStyle.C,"DE")
+                .addRDN(BCStyle.ST, "Hessen")
+                .addRDN(BCStyle.L, "Darmstadt")
+                .addRDN(BCStyle.O,"CA6")
+                .addRDN(BCStyle.OU,"PKI")
+                .addRDN(BCStyle.CN,"CA6").build();
     }
 
     private QTESLAPrivateKeyParameters importQteslaPrivateKey(String path){
@@ -128,8 +182,20 @@ public class Task4 extends CryptoUtilsProvider{
     }
     public void mainTask()  {
         //generateQTeslaKeyPair("/home/lukas/Dokumente/tu/pki/",2);
-        try(PemWriter writer = new PemWriter(new FileWriter("CA6.crt"))) {
-            PemObjectGenerator objectGenerator = new JcaMiscPEMGenerator(generateX509HybridCACertificate());
+        X509CertificateHolder caCert = null;
+        try {
+            caCert = generateX509HybridCACertificate();
+        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeySpecException | IOException | OperatorCreationException e) {
+            e.printStackTrace();
+        }
+        try(PemWriter writer = new PemWriter(new FileWriter("CAcert_CA6.crt"))) {
+            PemObjectGenerator objectGenerator = new JcaMiscPEMGenerator(caCert);
+            writer.writeObject(objectGenerator);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try(PemWriter writer = new PemWriter(new FileWriter("EEcert_E6.crt"))) {
+            PemObjectGenerator objectGenerator = new JcaMiscPEMGenerator(generateX509HybridEECertificate(caCert));
             writer.writeObject(objectGenerator);
         } catch (IOException | InvalidKeySpecException | OperatorCreationException | NoSuchProviderException | NoSuchAlgorithmException e) {
             e.printStackTrace();
