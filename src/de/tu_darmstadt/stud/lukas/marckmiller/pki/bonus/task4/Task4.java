@@ -1,7 +1,6 @@
 package de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task4;
 
 import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.utils.CryptoUtilsProvider;
-import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
@@ -58,14 +57,17 @@ public class Task4 extends CryptoUtilsProvider{
         RSAPublicKey publicEEKey= importRsaPublicKey(EEPublicKeyPath);
 
         Date now = new Date(System.currentTimeMillis());
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(now);
-        calendar.add(Calendar.MONTH,3);
+        Calendar notBefor = Calendar.getInstance();
+        notBefor.setTime(now);
+        notBefor.add(Calendar.MONTH,-1);
+        Calendar notAfter = Calendar.getInstance();
+        notAfter.setTime(now);
+        notAfter.add(Calendar.MONTH,3);
         HybridCertificateBuilder builder = new HybridCertificateBuilder(
                 caCert.getSubject(),
                 new BigInteger(String.valueOf(System.currentTimeMillis())),
-                now,
-                calendar.getTime(),
+                notBefor.getTime(),
+                notAfter.getTime(),
                 x500NameBuilder.build(),
                 publicEEKey,
                 importQteslaPublicKey(EEQteslaPublicKeyPath));
@@ -87,15 +89,18 @@ public class Task4 extends CryptoUtilsProvider{
         X500Name x500Name = getCAX500Name();
 
         Date now = new Date(System.currentTimeMillis());
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(now);
-        calendar.add(Calendar.MONTH,2);
+        Calendar notBefore = Calendar.getInstance();
+        notBefore.setTime(now);
+        notBefore.add(Calendar.MONTH,-1);
+        Calendar notAfter = Calendar.getInstance();
+        notAfter.setTime(now);
+        notAfter.add(Calendar.MONTH,2);
         RSAPublicKey publicKey = importRsaPublicKey(CAPublicKeyPath);
         var builder = new HybridCertificateBuilder(
                 x500Name,
                 new BigInteger(String.valueOf(System.currentTimeMillis())),
-                now,
-                calendar.getTime(),
+                notBefore.getTime(),
+                notAfter.getTime(),
                 x500Name,
                 publicKey,
                 importQteslaPublicKey(CAQteslaPublicKeyPath)
@@ -116,7 +121,7 @@ public class Task4 extends CryptoUtilsProvider{
         return x500NameBuilder.addRDN(BCStyle.C,"DE")
                 .addRDN(BCStyle.ST, "Hessen")
                 .addRDN(BCStyle.L, "Darmstadt")
-                .addRDN(BCStyle.O,"CA6")
+                .addRDN(BCStyle.O,"CA6 Inc")
                 .addRDN(BCStyle.OU,"PKI")
                 .addRDN(BCStyle.CN,"CA6").build();
     }
