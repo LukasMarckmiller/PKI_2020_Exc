@@ -1,7 +1,6 @@
 package de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task4;
 
 import org.bouncycastle.pqc.crypto.qtesla.QTESLAPrivateKeyParameters;
-import org.bouncycastle.pqc.crypto.qtesla.QTESLAPublicKeyParameters;
 
 import java.io.Serializable;
 

@@ -11,13 +11,10 @@ import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pqc.crypto.qtesla.*;
 import org.bouncycastle.util.io.pem.PemObjectGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -117,44 +114,6 @@ public class Task4 extends CryptoUtilsProvider{
         return builder.buildHybrid(signerPrimary,signerSecondary);
     }
 
-    private X500Name getCAX500Name() {
-        X500NameBuilder x500NameBuilder = new X500NameBuilder();
-        return x500NameBuilder.addRDN(BCStyle.C,"DE")
-                .addRDN(BCStyle.ST, "Hessen")
-                .addRDN(BCStyle.L, "Darmstadt")
-                .addRDN(BCStyle.O,"CA6 Inc")
-                .addRDN(BCStyle.OU,"PKI")
-                .addRDN(BCStyle.CN,"CA6").build();
-    }
-
-    private QTESLAPrivateKeyParameters importQteslaPrivateKey(String path){
-        QTESLAPrivateKeyWrapper wrapper = new QTESLAPrivateKeyWrapper(0, new byte[0]);
-        try (BufferedReader reader =new BufferedReader(new FileReader(path))) {
-            StringBuilder builder = new StringBuilder();
-            reader.lines().forEach(builder::append);
-            String qTeslaEncoded = builder.toString();
-            wrapper = (QTESLAPrivateKeyWrapper) CryptoUtilsProvider.convertFromBytes(CryptoUtilsProvider.base64Decode(qTeslaEncoded));
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        return new QTESLAPrivateKeyParameters(wrapper.getSecurityCategory(),wrapper.getSecret());
-    }
-
-    private QTESLAPublicKeyParameters importQteslaPublicKey(String path){
-        QTESLAPublicKeyWrapper wrapper = new QTESLAPublicKeyWrapper(0,new byte[0]);
-        try (BufferedReader reader =new BufferedReader(new FileReader(path))) {
-            StringBuilder builder = new StringBuilder();
-            reader.lines().forEach(builder::append);
-            String qTeslaEncoded = builder.toString();
-            wrapper = (QTESLAPublicKeyWrapper) CryptoUtilsProvider.convertFromBytes(CryptoUtilsProvider.base64Decode(qTeslaEncoded));
-
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        return new QTESLAPublicKeyParameters(wrapper.getSecurityCategory(),wrapper.getPublicData());
-    }
     private void generateQTeslaKeyPair(String outPath, int keyCount){
         for (int i = 0; i < keyCount; i++){
             var keyPairGenerator = new QTESLAKeyPairGenerator();

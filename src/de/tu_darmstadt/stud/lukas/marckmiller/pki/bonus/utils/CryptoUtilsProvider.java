@@ -6,9 +6,16 @@ package de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.utils;/*
  *
  */
 
+import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task4.QTESLAPrivateKeyWrapper;
+import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task4.QTESLAPublicKeyWrapper;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.pqc.crypto.qtesla.QTESLAPrivateKeyParameters;
+import org.bouncycastle.pqc.crypto.qtesla.QTESLAPublicKeyParameters;
 import org.bouncycastle.util.io.pem.PemReader;
 
 import java.io.*;
@@ -75,5 +82,43 @@ public class CryptoUtilsProvider {
              ObjectInput in = new ObjectInputStream(bis)) {
             return in.readObject();
         }
+    }
+
+    protected static QTESLAPublicKeyParameters importQteslaPublicKey(String path){
+        QTESLAPublicKeyWrapper wrapper = new QTESLAPublicKeyWrapper(0,new byte[0]);
+        try (BufferedReader reader =new BufferedReader(new FileReader(path))) {
+            StringBuilder builder = new StringBuilder();
+            reader.lines().forEach(builder::append);
+            String qTeslaEncoded = builder.toString();
+            wrapper = (QTESLAPublicKeyWrapper) CryptoUtilsProvider.convertFromBytes(CryptoUtilsProvider.base64Decode(qTeslaEncoded));
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return new QTESLAPublicKeyParameters(wrapper.getSecurityCategory(),wrapper.getPublicData());
+    }
+
+    protected static QTESLAPrivateKeyParameters importQteslaPrivateKey(String path){
+        QTESLAPrivateKeyWrapper wrapper = new QTESLAPrivateKeyWrapper(0, new byte[0]);
+        try (BufferedReader reader =new BufferedReader(new FileReader(path))) {
+            StringBuilder builder = new StringBuilder();
+            reader.lines().forEach(builder::append);
+            String qTeslaEncoded = builder.toString();
+            wrapper = (QTESLAPrivateKeyWrapper) CryptoUtilsProvider.convertFromBytes(CryptoUtilsProvider.base64Decode(qTeslaEncoded));
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return new QTESLAPrivateKeyParameters(wrapper.getSecurityCategory(),wrapper.getSecret());
+    }
+
+    protected static X500Name getCAX500Name() {
+        X500NameBuilder x500NameBuilder = new X500NameBuilder();
+        return x500NameBuilder.addRDN(BCStyle.C,"DE")
+                .addRDN(BCStyle.ST, "Hessen")
+                .addRDN(BCStyle.L, "Darmstadt")
+                .addRDN(BCStyle.O,"CA6 Inc")
+                .addRDN(BCStyle.OU,"PKI")
+                .addRDN(BCStyle.CN,"CA6").build();
     }
 }
