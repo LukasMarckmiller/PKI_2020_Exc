@@ -6,20 +6,10 @@ package de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus;/*
  *
  */
 
-import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task1.Task1;
-import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task2.Task2;
-import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task3.Task3;
-import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task4.Task4;
 import de.tu_darmstadt.stud.lukas.marckmiller.pki.bonus.task5.Task5;
-import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import java.io.IOException;
-import java.security.*;
-import java.security.spec.InvalidKeySpecException;
+import java.security.Security;
 
 public class Main {
     public static void main(String[] args) {
